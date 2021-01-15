@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root versionMajor="1" versionMinor="6">
+  <kernel name="bicgstab_2r_3r3w_rtl_v1" language="ip_c" vlnv="bigdataccelerate.com:kernel:bicgstab_2r_3r3w_rtl_v1:1.0" attributes="" preferredWorkGroupSizeMultiple="0" workGroupSize="1" interrupt="true" hwControlProtocol="ap_ctrl_hs">
+    <ports>
+      <port name="s_axi_control" mode="slave" range="0x1000" dataWidth="32" portType="addressable" base="0x0"/>
+      <port name="m00_axi" mode="master" range="0xFFFFFFFFFFFFFFFF" dataWidth="512" portType="addressable" base="0x0"/>
+      <port name="m01_axi" mode="master" range="0xFFFFFFFFFFFFFFFF" dataWidth="512" portType="addressable" base="0x0"/>
+      <port name="m02_axi" mode="master" range="0xFFFFFFFFFFFFFFFF" dataWidth="512" portType="addressable" base="0x0"/>
+      <port name="m03_axi" mode="master" range="0xFFFFFFFFFFFFFFFF" dataWidth="512" portType="addressable" base="0x0"/>
+      <port name="m04_axi" mode="master" range="0xFFFFFFFFFFFFFFFF" dataWidth="512" portType="addressable" base="0x0"/>
+      <port name="m05_axi" mode="master" range="0xFFFFFFFFFFFFFFFF" dataWidth="512" portType="addressable" base="0x0"/>
+      <port name="m06_axi" mode="master" range="0xFFFFFFFFFFFFFFFF" dataWidth="512" portType="addressable" base="0x0"/>
+      <port name="m07_axi" mode="master" range="0xFFFFFFFFFFFFFFFF" dataWidth="512" portType="addressable" base="0x0"/>
+      <port name="m08_axi" mode="master" range="0xFFFFFFFFFFFFFFFF" dataWidth="512" portType="addressable" base="0x0"/>
+    </ports>
+    <args>
+      <arg name="param0" addressQualifier="0" id="0" port="s_axi_control" size="0x8" offset="0x010" type="ulong" hostOffset="0x0" hostSize="0x8"/> 
+      <arg name="param1" addressQualifier="0" id="1" port="s_axi_control" size="0x8" offset="0x01c" type="ulong" hostOffset="0x0" hostSize="0x8"/> 
+      <arg name="param2" addressQualifier="0" id="2" port="s_axi_control" size="0x8" offset="0x028" type="ulong" hostOffset="0x0" hostSize="0x8"/> 
+      <arg name="axi00_read" addressQualifier="1" id="3" port="m00_axi" size="0x8" offset="0x034" type="int*" hostOffset="0x0" hostSize="0x8"/> 
+      <arg name="axi01_read" addressQualifier="1" id="4" port="m01_axi" size="0x8" offset="0x040" type="int*" hostOffset="0x0" hostSize="0x8"/> 
+      <arg name="axi02_read" addressQualifier="1" id="5" port="m02_axi" size="0x8" offset="0x04c" type="int*" hostOffset="0x0" hostSize="0x8"/> 
+      <arg name="axi03_read" addressQualifier="1" id="6" port="m03_axi" size="0x8" offset="0x058" type="int*" hostOffset="0x0" hostSize="0x8"/> 
+      <arg name="axi04_read" addressQualifier="1" id="7" port="m04_axi" size="0x8" offset="0x064" type="int*" hostOffset="0x0" hostSize="0x8"/> 
+      <arg name="axi05_write" addressQualifier="1" id="8" port="m05_axi" size="0x8" offset="0x070" type="int*" hostOffset="0x0" hostSize="0x8"/> 
+      <arg name="axi06_write" addressQualifier="1" id="9" port="m06_axi" size="0x8" offset="0x07c" type="int*" hostOffset="0x0" hostSize="0x8"/> 
+      <arg name="axi07_write" addressQualifier="1" id="10" port="m07_axi" size="0x8" offset="0x088" type="int*" hostOffset="0x0" hostSize="0x8"/> 
+      <arg name="axi08_debug_write" addressQualifier="1" id="11" port="m08_axi" size="0x8" offset="0x094" type="int*" hostOffset="0x0" hostSize="0x8"/> 
+    </args>
+  </kernel>
+</root>
+

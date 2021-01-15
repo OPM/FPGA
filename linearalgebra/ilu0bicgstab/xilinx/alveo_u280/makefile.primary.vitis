@@ -1,0 +1,221 @@
+#  Copyright 2020 Equinor ASA
+#
+#  This file is part of the Open Porous Media project (OPM).
+#
+#  OPM is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  OPM is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with OPM.  If not, see <http://www.gnu.org/licenses/>.
+
+# implements the bicgstab kernel
+
+# ------------------------------------------------------------------------------
+# variables that must be already set by the caller makefile
+# ------------------------------------------------------------------------------
+# --- tool/platform-specific variables, with examples
+# Vitis target platform:            VITIS_PLATFORM = xilinx_u280_xdma_201920_1
+# platform XSA file:                PLATFORM_XSA = /opt/xilinx/platforms/xilinx_u280_xdma_201920_1/hw/xilinx_u280_xdma_201920_1.xsa
+# target (sw_emu|hw_emu|hw):        TARGET = hw
+# --- design specific variables, with examples
+# ports configuration:              PORTS_CONFIG = 2r_3r3w_ddr
+# kernel XO package:                KERNEL_PACKAGE = bicgstab_2r_3r3w_rtl_v1.xo
+# sources directory:                SRCDIR = ../../../src
+# ------------------------------------------------------------------------------
+
+# command aliases
+VPP = $(XILINX_VITIS)/bin/v++
+RM = rm -f
+RMDIR = rm -rf
+
+# ---> check that all required variables are defined
+# tool setup
+ifeq ($(strip $(XILINX_VITIS)),)
+  $(error XILINX_VITIS must be defined, setup Vitis before continuing)
+endif
+# the following ones should be set by the target-specific makefile
+ifeq ($(strip $(VITIS_PLATFORM)),)
+  $(error VITIS_PLATFORM must be defined)
+endif
+ifeq ($(strip $(PLATFORM_XSA)),)
+  $(error PLATFORM_XSA must be defined)
+endif
+ifeq ($(strip $(TARGET)),)
+  $(error TARGET must be defined)
+endif
+ifeq ($(strip $(PORTS_CONFIG)),)
+  $(error PORTS_CONFIG must be defined)
+endif
+ifeq ($(strip $(KERNEL_PACKAGE)),)
+  $(error KERNEL_PACKAGE must be defined)
+endif
+ifeq ($(strip $(SRCDIR)),)
+  $(error SRCDIR must be defined)
+endif
+
+# short version of PORTS_CONFIG (remove the suffix "_ddr" and "_hbm" if present)
+PORTS_CONFIG_SHORT1 = $(patsubst %_ddr,%,$(PORTS_CONFIG))
+PORTS_CONFIG_SHORT2 = $(patsubst %_hbm,%,$(PORTS_CONFIG_SHORT1))
+PORTS_CONFIG_SHORT = $(PORTS_CONFIG_SHORT2)
+
+# kernel name
+RTL_VERSION = v1
+KERNEL = bicgstab_$(PORTS_CONFIG_SHORT)_rtl_$(RTL_VERSION)
+
+# kernel compiler global settings
+VPP_OPTS = --target $(TARGET) --platform $(VITIS_PLATFORM) --save-temps  
+#NOTE: kernel frequency options can be set like: --kernel_frequency 0:300|1:500
+
+#
+# kernel files/directories
+#
+
+KERNEL_PACKAGE_IMPL_DIR = kernel_package
+BINARY_CONTAINER = bicgstab_kernel
+BINARY_CONTAINER_FILE = $(BINARY_CONTAINER).xclbin
+HW_BUILD_DIR = $(BINARY_CONTAINER)
+HW_IPCACHE_DIR = $(PWD)/ip_cache
+
+#
+# primary build targets
+#
+
+.PHONY: all bitstream clean clean_all
+
+# default target only creates the kernel XO package
+# use 'make bitstream' to (re)implement the bitstream
+all: $(KERNEL_PACKAGE)
+
+bitstream: $(KERNEL_PACKAGE) $(BINARY_CONTAINER_FILE)
+
+# remove .xo package file
+clean:
+	-$(RM) $(KERNEL_PACKAGE)
+	-$(RMDIR) $(KERNEL_PACKAGE_IMPL_DIR)
+
+# remove .xo package file AND implementation files
+# WARNING: HW_IPCACHE_DIR left out by design, as cached file can be used in
+#          different implementations and helps a lot to reduce runtime
+clean_all:
+	-$(RM) $(KERNEL_PACKAGE)
+	-$(RMDIR) $(KERNEL_PACKAGE_IMPL_DIR)
+	-$(RMDIR) $(BINARY_CONTAINER)
+	-$(RM) config.ini *.xclbin* *.mdb *.ltx
+	-$(RM) *.log *.mem *.err *_sdx.txt *.csv *.run_summary *.wdb *.wcfg *.protoinst
+	-$(RMDIR) $(HW_BUILD_DIR) .Xil .run
+
+#
+# create RTL package
+#
+
+# The list of dependent files should be kept up-to-date.
+$(KERNEL_PACKAGE): \
+ ../scripts/create_xo_package.tcl \
+ ../scripts/kernel.xml \
+ ../scripts/package_kernel.tcl \
+ ../scripts/post_synth_impl.tcl \
+ $(SRCDIR)/../alveo_u280/IP_20192/FP_greater_than/FP_greater_than.xci \
+ $(SRCDIR)/../alveo_u280/IP_20192/FP_square_root/FP_square_root.xci \
+ $(SRCDIR)/../alveo_u280/IP_20192/FP_multiplier/FP_multiplier.xci \
+ $(SRCDIR)/../alveo_u280/IP_20192/FP_divider/FP_divider.xci \
+ $(SRCDIR)/../alveo_u280/IP_20192/FP_adder_blocking/FP_adder_blocking.xci \
+ $(SRCDIR)/../alveo_u280/IP_20192/FP_multiplier_blocking/FP_multiplier_blocking.xci \
+ $(SRCDIR)/../alveo_u280/IP_20192/FP_adder/FP_adder.xci \
+ $(SRCDIR)/../alveo_u280/IP_20192/FP_subtracter/FP_subtracter.xci \
+ $(SRCDIR)/../alveo_u280/IP_20192/blk_mem_ilu0_multiplicant_vector/blk_mem_ilu0_multiplicant_vector.xci \
+ $(SRCDIR)/../alveo_u280/IP_20192/blk_mem_temp_X_P_vect/blk_mem_temp_X_P_vect.xci \
+ $(SRCDIR)/../alveo_u280/IP_20192/binary_counter_32/binary_counter_32.xci \
+ $(SRCDIR)/../alveo_u280/rtl/pkg/constants.vhd \
+ $(SRCDIR)/rtl/axi_interfaces/rtl/axi_io_common.vhd $(SRCDIR)/rtl/axi_interfaces/rtl/dataflow_in_loop.vhd \
+ $(SRCDIR)/rtl/axi_interfaces/rtl/fifo_in_async_w512.vhd $(SRCDIR)/rtl/axi_interfaces/rtl/fifo_in_w512.vhd \
+ $(SRCDIR)/rtl/axi_interfaces/rtl/fifo_out_async_w512.vhd $(SRCDIR)/rtl/axi_interfaces/rtl/fifo_out_w512.vhd \
+ $(SRCDIR)/rtl/axi_interfaces/rtl/fifo_w10_d2_A.vhd $(SRCDIR)/rtl/axi_interfaces/rtl/fifo_w512_d512_A.vhd \
+ $(SRCDIR)/rtl/axi_interfaces/rtl/fifo_w512_d512_A_x.vhd $(SRCDIR)/rtl/axi_interfaces/rtl/hls_sdaccel_kernel_iostreams_hls_gmem0_m_axi.vhd \
+ $(SRCDIR)/rtl/axi_interfaces/rtl/mem_read_top_async_ddr.vhd $(SRCDIR)/rtl/axi_interfaces/rtl/mem_read_top_async_hbm.vhd \
+ $(SRCDIR)/rtl/axi_interfaces/rtl/mem_read_top_ddr.vhd $(SRCDIR)/rtl/axi_interfaces/rtl/mem_read_top_hbm.vhd \
+ $(SRCDIR)/rtl/axi_interfaces/rtl/mem_write_top_async_ddr.vhd $(SRCDIR)/rtl/axi_interfaces/rtl/mem_write_top_async_hbm.vhd \
+ $(SRCDIR)/rtl/axi_interfaces/rtl/mem_write_top_ddr.vhd $(SRCDIR)/rtl/axi_interfaces/rtl/mem_write_top_hbm.vhd\
+ $(SRCDIR)/rtl/axi_interfaces/rtl/read_input.vhd $(SRCDIR)/rtl/axi_interfaces/rtl/read_memory_proc.vhd \
+ $(SRCDIR)/rtl/axi_interfaces/rtl/start_for_write_stream_proc_U0.vhd $(SRCDIR)/rtl/axi_interfaces/rtl/write_output_buffer_V.vhd \
+ $(SRCDIR)/rtl/axi_interfaces/rtl/write_output.vhd $(SRCDIR)/rtl/axi_interfaces/rtl/write_stream_proc.vhd \
+ $(SRCDIR)/rtl/bicgstab_solver_2r-3r3w/pkg/dot_axpy_pkg.vhd $(SRCDIR)/rtl/bicgstab_solver_2r-3r3w/pkg/functions.vhd \
+ $(SRCDIR)/rtl/bicgstab_solver_2r-3r3w/pkg/rw_pkg.vhd $(SRCDIR)/rtl/bicgstab_solver_2r-3r3w/pkg/solver_pkg.vhd \
+ $(SRCDIR)/rtl/bicgstab_solver_2r-3r3w/pkg/sparstition_pkg.vhd $(SRCDIR)/rtl/bicgstab_solver_2r-3r3w/pkg/spmvp_pkg.vhd \
+ $(SRCDIR)/rtl/bicgstab_solver_2r-3r3w/pkg/types.vhd $(SRCDIR)/rtl/bicgstab_solver_2r-3r3w/pkg/wm_pkg.vhd \
+ $(SRCDIR)/rtl/bicgstab_solver_2r-3r3w/dist_delay.vhd $(SRCDIR)/rtl/bicgstab_solver_2r-3r3w/dot_axpy.vhd \
+ $(SRCDIR)/rtl/bicgstab_solver_2r-3r3w/dot_reduce.vhd $(SRCDIR)/rtl/bicgstab_solver_2r-3r3w/ext_read_unit.vhd \
+ $(SRCDIR)/rtl/bicgstab_solver_2r-3r3w/ilu0.vhd $(SRCDIR)/rtl/bicgstab_solver_2r-3r3w/int_read_unit.vhd \
+ $(SRCDIR)/rtl/bicgstab_solver_2r-3r3w/multiplicant_replication_buffer.vhd $(SRCDIR)/rtl/bicgstab_solver_2r-3r3w/NR2offset.vhd \
+ $(SRCDIR)/rtl/bicgstab_solver_2r-3r3w/NRs_fifo.vhd $(SRCDIR)/rtl/bicgstab_solver_2r-3r3w/reduce_stage.vhd \
+ $(SRCDIR)/rtl/bicgstab_solver_2r-3r3w/solver.vhd $(SRCDIR)/rtl/bicgstab_solver_2r-3r3w/sparstition.vhd \
+ $(SRCDIR)/rtl/bicgstab_solver_2r-3r3w/spmvp.vhd $(SRCDIR)/rtl/bicgstab_solver_2r-3r3w/tree_stage.vhd \
+ $(SRCDIR)/rtl/bicgstab_solver_2r-3r3w/vector_ops.vhd $(SRCDIR)/rtl/bicgstab_solver_2r-3r3w/vector_read_unit.vhd \
+ $(SRCDIR)/rtl/bicgstab_solver_2r-3r3w/write_merge.vhd $(SRCDIR)/rtl/bicgstab_solver_2r-3r3w/write_unit.vhd \
+ $(SRCDIR)/rtl/vitis_top_2r-3r3w/bicgstab_2r_3r3w_rtl_v1_control_s_axi.v $(SRCDIR)/rtl/vitis_top_2r-3r3w/bicgstab_2r_3r3w_rtl_v1.v \
+ $(SRCDIR)/rtl/vitis_top_2r-3r3w/bicgstab_solver_wrapper_2r_3r3w_simple-ddr_v1.vhd \
+ $(SRCDIR)/rtl/constr/bicgstab_2r_3r3w_rtl_v1_user.xdc $(SRCDIR)/rtl/constr/bicgstab_2r_3r3w_rtl_v1_ooc.xdc
+	$(RMDIR) $(KERNEL_PACKAGE_IMPL_DIR) && mkdir -p $(KERNEL_PACKAGE_IMPL_DIR) 
+	cd $(KERNEL_PACKAGE_IMPL_DIR) && vivado -mode batch -source ../../scripts/create_xo_package.tcl -tclargs --xsa_file $(PLATFORM_XSA)
+
+#
+# create binary container
+#
+
+# get absolute path to the post-opt tcl file (otherwise vivado won't find it)
+POSTOPTTCL = $(realpath $(SRCDIR)/rtl/constr/bicgstab_postopt.tcl)
+config.ini:
+	-@echo -e "\
+messageDb=${BINARY_CONTAINER}.mdb\n\
+temp_dir=${HW_BUILD_DIR}\n\
+report_dir=${HW_BUILD_DIR}/reports\n\
+log_dir=${HW_BUILD_DIR}/logs\n\
+remote_ip_cache=${HW_IPCACHE_DIR}\n\
+[advanced]\n\
+misc=solution_name=link\n\
+[vivado]\n\
+prop=run.impl_1.STEPS.OPT_DESIGN.TCL.POST={$(POSTOPTTCL)}\n\
+[connectivity]\n\
+nk=${KERNEL}:1:${KERNEL}_1" > config.ini;\
+if [[ $(PORTS_CONFIG) == 2r_3r3w_hbm ]]; then echo -e "\
+sp=${KERNEL}_1.m00_axi:HBM[2]\n\
+sp=${KERNEL}_1.m01_axi:HBM[4]\n\
+sp=${KERNEL}_1.m02_axi:HBM[6]\n\
+sp=${KERNEL}_1.m03_axi:HBM[8]\n\
+sp=${KERNEL}_1.m04_axi:HBM[10]\n\
+sp=${KERNEL}_1.m05_axi:HBM[6]\n\
+sp=${KERNEL}_1.m06_axi:HBM[8]\n\
+sp=${KERNEL}_1.m07_axi:HBM[10]\n\
+sp=${KERNEL}_1.m08_axi:PLRAM[0]" >> config.ini;\
+elif [[ $(PORTS_CONFIG) == 2r_3r3w_ddr ]]; then echo -e "\
+sp=${KERNEL}_1.m00_axi:DDR[0]\n\
+sp=${KERNEL}_1.m01_axi:DDR[1]\n\
+sp=${KERNEL}_1.m02_axi:HBM[2]\n\
+sp=${KERNEL}_1.m03_axi:HBM[4]\n\
+sp=${KERNEL}_1.m04_axi:HBM[6]\n\
+sp=${KERNEL}_1.m05_axi:HBM[2]\n\
+sp=${KERNEL}_1.m06_axi:HBM[4]\n\
+sp=${KERNEL}_1.m07_axi:HBM[6]\n\
+sp=${KERNEL}_1.m08_axi:PLRAM[0]" >> config.ini;\
+else echo "ERROR: unrecognized ports configuration [$(PORTS_CONFIG)]"; rm -f config.ini;\
+fi
+
+$(BINARY_CONTAINER_FILE): config.ini $(KERNEL_PACKAGE)
+	$(VPP) $(VPP_OPTS) --link --debug \
+ --config config.ini \
+ --profile_kernel data:all:all:all:all \
+ --profile_kernel stall:all:all:all \
+ -o"$@" $(KERNEL_PACKAGE)
+
+# NOTE: commands for vivado implementation strategy selection
+# (Performance_RefinePlacement, Performance_ExtraTimingOpt, etc.)
+# --> in config.ini:
+#prop=run.impl_1.STRATEGY=Performance_Retiming\n\
+# --> on v++ command line:
+# --vivado.prop run.impl_1.STRATEGY=Performance_ExtraTimingOpt \
