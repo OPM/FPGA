@@ -49,7 +49,8 @@ If you want to contribute, fork OPM/FPGA on github.
 DOCUMENTATION
 -------------
 
-See documentation, including building instructions, at [https://wiki.opm-project.org/index.php?title=FPGA_setup_and_building](https://wiki.opm-project.org/index.php?title=FPGA_setup_and_building)
+See documentation, including building instructions, at [https://wiki.opm-project.org/index.php?title=FPGA_setup_and_building](https://wiki.opm-project.org/index.php?title=FPGA_setup_and_building)\
+Also, see the paper [Hardware Acceleration of HPC Computational Flow Dynamics using HBM-enabled FPGAs](https://arxiv.org/abs/2101.01745) for in-depth description of the ILU0-BiCGSTAB solver kernel and performance measurements.
 
 
 REPORTING ISSUES
