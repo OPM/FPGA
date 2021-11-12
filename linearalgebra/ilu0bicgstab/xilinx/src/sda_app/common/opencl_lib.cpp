@@ -60,7 +60,7 @@ static size_t load_file_to_memory(const char *filename, unsigned char **result, 
 int setup_opencl(const char *target_device_name,
  cl_device_id *device_id, cl_context *context,
  cl_command_queue *commands, cl_program *program, cl_kernel *kernel,
- char *kernel_name, char *xclbin, bool *platform_awsf1) {
+ const char *kernel_name, const char *xclbin, bool *platform_awsf1) {
   int err;
   int status;
   char platform_vendor[1024];
