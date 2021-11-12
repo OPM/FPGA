@@ -25,7 +25,7 @@
 int setup_opencl(const char *target_device_name,
  cl_device_id *device_id, cl_context *context,
  cl_command_queue *commands, cl_program *program, cl_kernel *kernel,
- char *kernel_name, char *xclbin, bool *platform_awsf1);
+ const char *kernel_name, const char *xclbin, bool *platform_awsf1);
 int swap_kernel(cl_device_id device_id, cl_context context, cl_program *program,
  cl_kernel *kernel, char *dummy_kernel_name, char *dummy_xclbin,
  char *main_kernel_name, char *main_xclbin);
